@@ -8,8 +8,8 @@ body {
   font-family: system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
-  color: #2c3e50; /* Темно-синій текст */
-  background-color: #f4f5f7; /* Світлий синьо-сірий фон сторінки */
+  color: #2c3e50;
+  background-color: #f4f5f7;
 }
 
 /* 2. Стилізація header */
@@ -29,54 +29,54 @@ header h1 {
 header nav a {
   color: #ffffff;
   text-decoration: none;
-  margin-right: 20px; /* Відступи між пунктами меню */
+  margin-right: 20px;
   font-weight: bold;
 }
 
 /* 3. Стилізація main та центрування */
 main {
   max-width: 1000px;
-  margin: 0 auto; /* Центрування по горизонталі */
+  margin: 0 auto;
   padding: 20px;
 }
 
-/* 4. Стилізація секцій предметів (Вимога варіанта 16) */
-section {
-  background-color: #e2e6ea; /* Фон-акцент трохи відмінного відтінку */
+/* 4. Стилізація секцій предметів через класи */
+.subject-section {
+  background-color: #e2e6ea;
   padding: 16px;
-  margin-bottom: 16px; /* Відступ між предметами */
+  margin-bottom: 16px;
   border-radius: 8px;
 }
 
-section h2 {
+.subject-section h2 {
   margin-top: 0;
   color: #2c3e50;
 }
 
-/* 5. Стилізація карток конспектів (Вимога варіанта 16) */
-article {
-  background-color: #ffffff; /* Білий папір */
-  padding: 10px; /* Компактні відступи */
-  border: 1px solid #ced4da; /* Рамка 1px */
+/* 5. Стилізація карток конспектів через класи */
+.note-card {
+  background-color: #ffffff;
+  padding: 10px;
+  border: 1px solid #ced4da;
   margin-bottom: 10px;
   border-radius: 4px;
 }
 
-article h3 {
+.note-card h3 {
   margin: 0 0 5px 0;
   font-size: 1.1rem;
 }
 
-article p {
+.note-card p {
   margin: 0;
 }
 
-/* 6. Стилізація бічної панелі aside (Вимога варіанта 16) */
+/* 6. Стилізація бічної панелі aside */
 aside {
   background-color: #ffffff;
   border: 2px solid #b0bec5;
-  padding: 24px; /* Великий padding */
-  line-height: 1.6; /* Для читабельності тексту */
+  padding: 24px;
+  line-height: 1.6;
   border-radius: 8px;
   margin-top: 20px;
 }
@@ -86,6 +86,6 @@ footer {
   text-align: center;
   padding: 20px;
   font-size: 0.9rem;
-  color: #7f8c8d; /* Приглушений колір тексту */
+  color: #7f8c8d;
   background-color: #ecf0f1;
 }
