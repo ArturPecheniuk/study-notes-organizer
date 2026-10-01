@@ -1,32 +1,40 @@
 /* =========================================
-   1. БАЗОВІ СТИЛІ (Mobile-First)
+   ОБҐРУНТУВАННЯ НЕЧІТКОЇ ВИМОГИ (ВАРІАНТ 16)
+   Вимога: "Має допомагати зосередитись на навчанні".
+   Рішення: Для забезпечення максимальної концентрації уваги обрано 
+   стриману, нейтральну колірну палітру (світло-сірий фон сторінки #f8f9fa 
+   та чисто білий фон для карток і секцій). Яскраві кольори відсутні на 
+   великих площах, щоб не відвертати увагу від тексту. Замість цього 
+   акцентні кольори (синій, зелений, червоний, фіолетовий, помаранчевий) 
+   використані дуже дозовано — виключно для заголовків секцій, рамок карток 
+   та пунктів навігації. Це візуально групує контент за предметами, 
+   але залишає загальний вигляд інтерфейсу спокійним та академічним.
 ========================================= */
+
+/* 1. БАЗОВІ СТИЛІ ТА ТИПОГРАФІКА */
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #2c3e50;
-  background-color: #f4f5f7;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6; /* Покращує читабельність основного тексту */
+  color: #333333;
+  background-color: #f8f9fa; /* Нейтральний фон для зосередженості */
 }
 
-/* Обмеження ширини зображень (вимога практикуму) */
 img {
   max-width: 100%;
   height: auto;
 }
 
-/* --- HEADER (Flexbox) --- */
+/* 2. НАВІГАЦІЯ ТА HEADER */
 .site-header {
-  background-color: #34495e;
-  color: #ffffff;
+  background-color: #ffffff;
   padding: 20px;
-  border-bottom: 4px solid #2c3e50;
-  /* Для мобільних ставимо в колонку по центру */
+  border-bottom: 1px solid #e9ecef;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -36,7 +44,7 @@ img {
 .site-header h1 {
   margin: 0;
   font-size: 1.8rem;
-  text-align: center;
+  color: #212529;
 }
 
 .main-nav {
@@ -47,113 +55,134 @@ img {
 }
 
 .main-nav a {
-  color: #ffffff;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
-/* --- MAIN (Контейнер) --- */
+/* Чітка вимога: 5 акцентних кольорів у навігації */
+.nav-math { color: #1976d2; background-color: #e3f2fd; }
+.nav-prog { color: #2e7d32; background-color: #e8f5e9; }
+.nav-phys { color: #c62828; background-color: #ffebee; }
+.nav-eng  { color: #6a1b9a; background-color: #f3e5f5; }
+.nav-hist { color: #e65100; background-color: #fff3e0; }
+
+/* 3. ОСНОВНИЙ МАКЕТ */
 .layout-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
-  /* На мобільному: секції та aside йдуть просто одне під одним */
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
-/* --- СЕКЦІЇ ТА КАРТКИ --- */
+/* 4. СЕКЦІЇ ПРЕДМЕТІВ ТА КАРТКИ */
 .subject-section {
-  background-color: #e2e6ea;
-  padding: 16px;
-  margin-bottom: 20px;
+  background-color: #ffffff;
+  padding: 24px;
+  margin-bottom: 24px;
   border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
 .subject-section h2 {
   margin-top: 0;
-  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 8px;
 }
 
-/* GRID-контейнер для карток (Варіант 16: мобільний - 1 колонка) */
 .notes-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: 16px; /* Гештальт-принцип: відступи між картками */
 }
 
 .note-card {
   background-color: #ffffff;
-  padding: 14px;
-  border: 1px solid #ced4da;
+  padding: 16px;
+  border: 1px solid #e9ecef; /* Базова тонка рамка */
   border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+/* Виразна тема конспекту (Деталь варіанта 16) */
 .note-card h3 {
   margin: 0 0 8px 0;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #212529;
 }
 
 .note-card p {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  color: #495057;
 }
 
-/* --- ASIDE --- */
+/* Чітка вимога: 5 акцентних кольорів для заголовків та рамок карток */
+.color-math h2 { color: #1976d2; border-bottom-color: #1976d2; }
+.color-math .note-card { border-left: 4px solid #1976d2; }
+
+.color-prog h2 { color: #2e7d32; border-bottom-color: #2e7d32; }
+.color-prog .note-card { border-left: 4px solid #2e7d32; }
+
+.color-phys h2 { color: #c62828; border-bottom-color: #c62828; }
+.color-phys .note-card { border-left: 4px solid #c62828; }
+
+.color-eng h2 { color: #6a1b9a; border-bottom-color: #6a1b9a; }
+.color-eng .note-card { border-left: 4px solid #6a1b9a; }
+
+.color-hist h2 { color: #e65100; border-bottom-color: #e65100; }
+.color-hist .note-card { border-left: 4px solid #e65100; }
+
+/* 5. ASIDE ТА FOOTER */
 .note-viewer {
   background-color: #ffffff;
-  border: 2px solid #b0bec5;
+  border: 1px solid #e9ecef;
   padding: 24px;
-  line-height: 1.6;
   border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
-/* --- FOOTER --- */
+.note-viewer h2 {
+  margin-top: 0;
+  color: #212529;
+}
+
 footer {
   text-align: center;
-  padding: 20px;
+  padding: 24px;
   font-size: 0.9rem;
-  color: #7f8c8d;
-  background-color: #ecf0f1;
+  color: #6c757d;
+  background-color: #ffffff;
+  border-top: 1px solid #e9ecef;
 }
 
-/* =========================================
-   2. МЕДІА-ЗАПИТИ (Адаптивність)
-========================================= */
-
-/* --- ПЛАНШЕТ (≥ 600px) --- */
+/* 6. АДАПТИВНІСТЬ (З ПРАКТИКУМУ 4) */
 @media (min-width: 600px) {
   .site-header {
     flex-direction: row;
     justify-content: space-between;
-    padding: 20px 40px;
   }
-  
-  /* Варіант 16: картки конспектів у 2 колонки */
   .notes-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* --- ДЕСКТОП (≥ 1024px) --- */
 @media (min-width: 1024px) {
-  /* Варіант 16: aside стає фіксованою колонкою справа (3fr 1fr) */
   .layout-container {
     display: grid;
     grid-template-columns: 3fr 1fr;
-    align-items: start; /* Щоб aside не розтягувався на всю висоту */
+    align-items: start;
   }
-
-  /* Робимо aside фіксованим при прокрутці */
   .note-viewer {
     position: sticky;
-    top: 20px;
-    margin-top: 0;
+    top: 24px;
   }
-
-  /* Варіант 16: картки конспектів у 3 колонки */
   .notes-grid {
     grid-template-columns: repeat(3, 1fr);
   }
