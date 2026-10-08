@@ -62,12 +62,12 @@ img {
   transition: background-color 0.2s;
 }
 
-/* Чітка вимога: 5 акцентних кольорів у навігації */
+/* Чітка вимога: 5 акцентних кольорів у навігації (Контраст виправлено) */
 .nav-math { color: #0d47a1; background-color: #e3f2fd; }
 .nav-prog { color: #2e7d32; background-color: #e8f5e9; }
 .nav-phys { color: #c62828; background-color: #ffebee; }
 .nav-eng  { color: #6a1b9a; background-color: #f3e5f5; }
-.nav-hist { color: #e65100; background-color: #fff3e0; }
+.nav-hist { color: #993300; background-color: #fff3e0; }
 
 /* 3. ОСНОВНИЙ МАКЕТ */
 .layout-container {
@@ -124,8 +124,8 @@ img {
 }
 
 /* Чітка вимога: 5 акцентних кольорів для заголовків та рамок карток */
-.color-math h2 { color: #1976d2; border-bottom-color: #1976d2; }
-.color-math .note-card { border-left: 4px solid #1976d2; }
+.color-math h2 { color: #0d47a1; border-bottom-color: #0d47a1; }
+.color-math .note-card { border-left: 4px solid #0d47a1; }
 
 .color-prog h2 { color: #2e7d32; border-bottom-color: #2e7d32; }
 .color-prog .note-card { border-left: 4px solid #2e7d32; }
@@ -136,8 +136,8 @@ img {
 .color-eng h2 { color: #6a1b9a; border-bottom-color: #6a1b9a; }
 .color-eng .note-card { border-left: 4px solid #6a1b9a; }
 
-.color-hist h2 { color: #e65100; border-bottom-color: #e65100; }
-.color-hist .note-card { border-left: 4px solid #e65100; }
+.color-hist h2 { color: #993300; border-bottom-color: #993300; }
+.color-hist .note-card { border-left: 4px solid #993300; }
 
 /* 5. ASIDE ТА FOOTER */
 .note-viewer {
