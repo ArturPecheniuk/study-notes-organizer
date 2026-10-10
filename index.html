@@ -22,12 +22,12 @@
   </header>
 
   <main class="layout-container">
-    <div class="subjects-container">
+    <div id="notes-list" class="subjects-container">
       
       <!-- Предмет 1 -->
       <section id="math" class="subject-section color-math">
         <h2>Вища математика</h2>
-        <div class="notes-grid">
+        <div class="notes-grid" data-subject="Вища математика">
           <article class="note-card">
             <h3>Тема: Інтеграли</h3>
             <p>Конспект лекції про визначені інтеграли та їх обчислення.</p>
@@ -38,7 +38,7 @@
       <!-- Предмет 2 -->
       <section id="programming" class="subject-section color-prog">
         <h2>Програмування</h2>
-        <div class="notes-grid">
+        <div class="notes-grid" data-subject="Програмування">
           <article class="note-card">
             <h3>Тема: Основи C#</h3>
             <p>Базові типи даних, масиви та структури управління.</p>
@@ -49,7 +49,7 @@
       <!-- Предмет 3 -->
       <section id="physics" class="subject-section color-phys">
         <h2>Фізика</h2>
-        <div class="notes-grid">
+        <div class="notes-grid" data-subject="Фізика">
           <article class="note-card">
             <h3>Тема: Кінематика</h3>
             <p>Рівномірний та рівноприскорений рух матеріальної точки.</p>
@@ -60,7 +60,7 @@
       <!-- Предмет 4 -->
       <section id="english" class="subject-section color-eng">
         <h2>Англійська мова</h2>
-        <div class="notes-grid">
+        <div class="notes-grid" data-subject="Англійська мова">
           <article class="note-card">
             <h3>Тема: Часи групи Perfect</h3>
             <p>Правила використання Present, Past та Future Perfect.</p>
@@ -71,7 +71,7 @@
       <!-- Предмет 5 -->
       <section id="history" class="subject-section color-hist">
         <h2>Історія України</h2>
-        <div class="notes-grid">
+        <div class="notes-grid" data-subject="Історія України">
           <article class="note-card">
             <h3>Тема: Київська Русь</h3>
             <p>Утворення держави, перші князі та їхня внутрішня політика.</p>
@@ -84,6 +84,7 @@
     <aside class="note-viewer">
       <h2>Перегляд конспекту</h2>
       <p>Оберіть конспект для детального перегляду – тут з'явиться його текст.</p>
+      <p id="notes-count">Усього конспектів: 0</p>
     </aside>
   </main>
 

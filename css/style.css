@@ -139,6 +139,23 @@ img {
 .color-hist h2 { color: #993300; border-bottom-color: #993300; }
 .color-hist .note-card { border-left: 4px solid #993300; }
 
+/* Практикум 7: клас exam-soon додається з JavaScript конспектам, з яких скоро іспит */
+.note-card.exam-soon {
+  background-color: #fffdf5;
+}
+
+.note-card.exam-soon::after {
+  content: "Скоро іспит";
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #b71c1c;
+  background-color: #ffebee;
+}
+
 /* 5. ASIDE ТА FOOTER */
 .note-viewer {
   background-color: #ffffff;
@@ -150,6 +167,13 @@ img {
 
 .note-viewer h2 {
   margin-top: 0;
+  color: #212529;
+}
+
+/* Практикум 7: підсумок, який оновлюється з JavaScript */
+#notes-count {
+  margin-bottom: 0;
+  font-weight: 700;
   color: #212529;
 }
 
