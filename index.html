@@ -23,7 +23,34 @@
 
   <main class="layout-container">
     <div id="notes-list" class="subjects-container">
-      
+
+      <!-- Практикум 8: форма додавання нового конспекту -->
+      <section id="add-note" class="subject-section">
+        <h2>Додати конспект</h2>
+        <form id="note-form" class="note-form">
+          <div class="form-field">
+            <label for="note-subject">Предмет</label>
+            <select id="note-subject" name="subject" required>
+              <option value="">Оберіть предмет</option>
+              <option value="Вища математика">Вища математика</option>
+              <option value="Програмування">Програмування</option>
+              <option value="Фізика">Фізика</option>
+              <option value="Англійська мова">Англійська мова</option>
+              <option value="Історія України">Історія України</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="note-topic">Тема</label>
+            <input type="text" id="note-topic" name="topic" required pattern=".{3,}" placeholder="Наприклад: Ряди Фур'є">
+          </div>
+          <div class="form-field">
+            <label for="note-pages">Кількість сторінок</label>
+            <input type="number" id="note-pages" name="pages" required min="1" placeholder="Наприклад: 10">
+          </div>
+          <button type="submit" class="form-button">Додати конспект</button>
+        </form>
+      </section>
+
       <!-- Предмет 1 -->
       <section id="math" class="subject-section color-math">
         <h2>Вища математика</h2>
