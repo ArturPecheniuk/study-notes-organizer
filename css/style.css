@@ -139,6 +139,10 @@ img {
 .color-hist h2 { color: #993300; border-bottom-color: #993300; }
 .color-hist .note-card { border-left: 4px solid #993300; }
 
+/* Практикум 9: секція конспектів, завантажених з API (нейтральний сіро-синій) */
+.color-server h2 { color: #37474f; border-bottom-color: #37474f; }
+.color-server .note-card { border-left: 4px solid #37474f; }
+
 /* Практикум 7: клас exam-soon додається з JavaScript конспектам, з яких скоро іспит */
 .note-card.exam-soon {
   background-color: #fffdf5;
@@ -214,6 +218,41 @@ img {
   font-size: 0.9rem;
   color: #495057;
   cursor: pointer;
+}
+
+/* Практикум 9: панель кнопки «Оновити», стан завантаження та повідомлення про помилку */
+.api-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.api-loading {
+  margin: 0;
+  font-weight: 700;
+  color: #495057;
+}
+
+.api-error {
+  margin: 0 0 16px 0;
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-weight: 700;
+  color: #b71c1c;
+  background-color: #ffebee;
+}
+
+.form-button:disabled {
+  background-color: #6c757d;
+  cursor: wait;
+}
+
+/* Текст конспекту з сервера всередині картки */
+.note-card .note-text {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #495057;
 }
 
 /* 5. ASIDE ТА FOOTER */
