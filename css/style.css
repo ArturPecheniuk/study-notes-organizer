@@ -11,6 +11,11 @@
    але залишає загальний вигляд інтерфейсу спокійним та академічним.
 ========================================= */
 
+/* Практикум 10: ховаємо шаблон Vue, доки застосунок не змонтовано (щоб не блимали {{ }}) */
+[v-cloak] {
+  display: none;
+}
+
 /* 1. БАЗОВІ СТИЛІ ТА ТИПОГРАФІКА */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -253,6 +258,41 @@ img {
   margin-top: 8px;
   font-size: 0.9rem;
   color: #495057;
+}
+
+/* Практикум 10: кнопка «вивчено» в компоненті NoteSummary */
+.learned-button {
+  display: block;
+  margin-top: 10px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #2e7d32;
+  background-color: #ffffff;
+  border: 1px solid #2e7d32;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.learned-button:hover {
+  background-color: #e8f5e9;
+}
+
+/* Вивчений конспект: зелений фон кнопки та легке «приглушення» картки */
+.note-card.learned .learned-button {
+  color: #ffffff;
+  background-color: #2e7d32;
+}
+
+.note-card.learned h3 {
+  color: #495057;
+}
+
+#learned-count {
+  margin-bottom: 0;
+  font-weight: 700;
+  color: #2e7d32;
 }
 
 /* 5. ASIDE ТА FOOTER */

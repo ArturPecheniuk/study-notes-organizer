@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Органайзер конспектів</title>
   <link rel="stylesheet" href="css/style.css">
+  <!-- Практикум 10: Vue 3 через CDN (глобальна збірка, без npm і збирання) -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="script.js" defer></script>
   <link rel="icon" href="data:,">
 </head>
@@ -21,108 +23,71 @@
     </nav>
   </header>
 
-  <main class="layout-container">
+  <!-- Практикум 10: уся основна частина сторінки — це Vue-застосунок #app.
+       Розмітка нижче є шаблоном Vue: {{ }} — виведення даних, v-for — цикл, @ — події.
+       Статичні картки-заглушки з практикуму 2 прибрано: картки тепер створює компонент NoteSummary. -->
+  <main id="app" class="layout-container" v-cloak>
     <div id="notes-list" class="subjects-container">
 
-      <!-- Практикум 8: форма додавання нового конспекту -->
+      <!-- Форма додавання нового конспекту (з практикуму 8, тепер через v-model) -->
       <section id="add-note" class="subject-section">
         <h2>Додати конспект</h2>
-        <form id="note-form" class="note-form">
+        <form id="note-form" class="note-form" @submit.prevent="addNote">
           <div class="form-field">
             <label for="note-subject">Предмет</label>
-            <select id="note-subject" name="subject" required>
+            <select id="note-subject" name="subject" required v-model="newSubject">
               <option value="">Оберіть предмет</option>
-              <option value="Вища математика">Вища математика</option>
-              <option value="Програмування">Програмування</option>
-              <option value="Фізика">Фізика</option>
-              <option value="Англійська мова">Англійська мова</option>
-              <option value="Історія України">Історія України</option>
+              <option v-for="subject in studySubjects" :key="subject.id" :value="subject.name">{{ subject.name }}</option>
             </select>
           </div>
           <div class="form-field">
             <label for="note-topic">Тема</label>
-            <input type="text" id="note-topic" name="topic" required pattern=".{3,}" placeholder="Наприклад: Ряди Фур'є">
+            <input type="text" id="note-topic" name="topic" required pattern=".{3,}" placeholder="Наприклад: Ряди Фур'є" v-model.trim="newTopic" @input="validateTopic">
           </div>
           <div class="form-field">
             <label for="note-pages">Кількість сторінок</label>
-            <input type="number" id="note-pages" name="pages" required min="1" placeholder="Наприклад: 10">
+            <input type="number" id="note-pages" name="pages" required min="1" placeholder="Наприклад: 10" v-model.number="newPages">
           </div>
           <button type="submit" class="form-button">Додати конспект</button>
         </form>
       </section>
 
-      <!-- Предмет 1 -->
-      <section id="math" class="subject-section color-math">
-        <h2>Вища математика</h2>
-        <div class="notes-grid" data-subject="Вища математика">
-          <article class="note-card">
-            <h3>Тема: Інтеграли</h3>
-            <p>Конспект лекції про визначені інтеграли та їх обчислення.</p>
-          </article>
-        </div>
-      </section>
+      <!-- Секції предметів: одна секція на кожен предмет масиву subjects (v-for) -->
+      <section v-for="subject in subjects" :key="subject.id" :id="subject.id" class="subject-section" :class="subject.color">
+        <h2>{{ subject.name }}</h2>
 
-      <!-- Предмет 2 -->
-      <section id="programming" class="subject-section color-prog">
-        <h2>Програмування</h2>
-        <div class="notes-grid" data-subject="Програмування">
-          <article class="note-card">
-            <h3>Тема: Основи C#</h3>
-            <p>Базові типи даних, масиви та структури управління.</p>
-          </article>
+        <!-- Панель завантаження з API (з практикуму 9) — лише в секції «Конспекти з сервера» -->
+        <div v-if="subject.fromServer" class="api-toolbar">
+          <button type="button" class="form-button" :disabled="isLoading" @click="loadData">Оновити</button>
+          <p v-if="isLoading" class="api-loading">Завантаження…</p>
         </div>
-      </section>
+        <p v-if="subject.fromServer && apiError" class="api-error">{{ apiError }}</p>
 
-      <!-- Предмет 3 -->
-      <section id="physics" class="subject-section color-phys">
-        <h2>Фізика</h2>
-        <div class="notes-grid" data-subject="Фізика">
-          <article class="note-card">
-            <h3>Тема: Кінематика</h3>
-            <p>Рівномірний та рівноприскорений рух матеріальної точки.</p>
-          </article>
+        <!-- Картки конспектів: компонент NoteSummary для кожного конспекту цього предмета -->
+        <div class="notes-grid">
+          <note-summary
+            v-for="note in notesOf(subject.name)"
+            :key="note.id"
+            :id="note.id"
+            :subject="note.subject"
+            :topic="note.topic"
+            :pages="note.pages"
+            :text="note.text"
+            :exam-soon="note.examSoon"
+            :learned="note.learned"
+            @toggle-learned="toggleLearned"
+            @toggle-exam="toggleExam">
+          </note-summary>
         </div>
-      </section>
-
-      <!-- Предмет 4 -->
-      <section id="english" class="subject-section color-eng">
-        <h2>Англійська мова</h2>
-        <div class="notes-grid" data-subject="Англійська мова">
-          <article class="note-card">
-            <h3>Тема: Часи групи Perfect</h3>
-            <p>Правила використання Present, Past та Future Perfect.</p>
-          </article>
-        </div>
-      </section>
-
-      <!-- Предмет 5 -->
-      <section id="history" class="subject-section color-hist">
-        <h2>Історія України</h2>
-        <div class="notes-grid" data-subject="Історія України">
-          <article class="note-card">
-            <h3>Тема: Київська Русь</h3>
-            <p>Утворення держави, перші князі та їхня внутрішня політика.</p>
-          </article>
-        </div>
-      </section>
-
-      <!-- Практикум 9: конспекти, завантажені із зовнішнього API -->
-      <section id="server-notes" class="subject-section color-server">
-        <h2>Конспекти з сервера</h2>
-        <div class="api-toolbar">
-          <button type="button" id="reload-button" class="form-button">Оновити</button>
-          <p id="loading-message" class="api-loading" hidden>Завантаження…</p>
-        </div>
-        <p id="api-error" class="api-error" hidden></p>
-        <div class="notes-grid" data-subject="Конспекти з сервера"></div>
       </section>
 
     </div>
-    
+
     <aside class="note-viewer">
       <h2>Перегляд конспекту</h2>
       <p>Оберіть конспект для детального перегляду – тут з'явиться його текст.</p>
-      <p id="notes-count">Усього конспектів: 0</p>
+      <p id="notes-count">Усього конспектів: {{ notes.length }}</p>
+      <p id="learned-count">Вивчено: {{ learnedCount }} з {{ notes.length }}</p>
     </aside>
   </main>
 

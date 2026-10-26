@@ -1,5 +1,8 @@
 // Практична робота №6. Варіант 16 «Органайзер конспектів»
 
+// Практикум 10, кроки 1 і 10. Обрано Vue 3: він підключається одним тегом <script> без Babel,
+// а шаблони пишуться майже як звичайний HTML, тому існуючу розмітку легко перенести в компоненти.
+
 // Крок 3. Перевірка, що файл підключено до сторінки
 console.log('script.js підключено');
 
@@ -9,10 +12,10 @@ const API_URL = 'https://jsonplaceholder.typicode.com/posts?userId=2';
 // Назва секції, у яку потрапляють конспекти з сервера
 const SERVER_SUBJECT = 'Конспекти з сервера';
 
-// Практикум 7, крок 2. Видаляємо статичні картки-заглушки з практикуму 2
-// (у HTML вони лишаються як орієнтир структури, а на сторінці їх замінять картки з масиву)
-const placeholders = document.querySelectorAll('.note-card');
-placeholders.forEach(placeholder => placeholder.remove());
+// Практикум 7, крок 2 (у практикумі 10 вимкнено): статичних карток-заглушок у HTML більше немає,
+// картки створює компонент Vue, тому видаляти вручну нічого не потрібно
+// const placeholders = document.querySelectorAll('.note-card');
+// placeholders.forEach(placeholder => placeholder.remove());
 
 // Крок 4. Дані варіанта: масив конспектів
 const notes = [
@@ -33,8 +36,8 @@ const subjects = ['Вища математика', 'Програмування',
 // Скільки днів залишилося до іспитів
 const daysUntilExam = 5;
 
-// Практикум 7, крок 3. Контейнер, всередині якого з'являться картки конспектів
-const listContainer = document.querySelector('#notes-list');
+// Практикум 7, крок 3 (у практикумі 10 вимкнено): контейнер тепер керується Vue
+// const listContainer = document.querySelector('#notes-list');
 
 // Крок 5. Функція рахує циклом for кількість конспектів по кожному предмету
 // і виводить підсумок у консоль
@@ -89,6 +92,15 @@ for (const note of notes) {
 }
 
 
+// ===== Практикум 10, крок 7. Ручний DOM-код практикумів 7–9 ВИМКНЕНО =====
+// Функцію renderNotes (createElement + append), ручні обробники форми, делегування change
+// і завантаження з API через querySelector замінено Vue-застосунком нижче:
+//   renderNotes            → компонент NoteSummary + v-for у шаблоні
+//   форма (submit, input)  → v-model, @submit.prevent, метод addNote, validateTopic
+//   чекбокс (делегування)  → подія toggleExam компонента
+//   loadData + showLoading → метод loadData і реактивні isLoading, apiError
+// Код залишено закоментованим для порівняння «до / після».
+/*
 // ===== Практикум 7. Маніпуляція DOM =====
 
 // Крок 4. Функція рендеру: проходить масив конспектів циклом for...of,
@@ -297,3 +309,176 @@ reloadButton.addEventListener('click', () => {
 
 // Завантажуємо конспекти з сервера одразу після відкриття сторінки
 loadData();
+*/
+
+
+// ===== Практикум 10. Vue 3: компонентний підхід =====
+
+const { createApp } = Vue;
+
+// Кроки 4–6. Компонент NoteSummary — картка одного конспекту.
+// Отримує всі дані через props і не звертається до глобальних змінних;
+// про клік повідомляє батьківський компонент подіями toggle-learned та toggle-exam
+// (назви подій у kebab-case, бо шаблон записано прямо в HTML, а HTML не розрізняє великі й малі літери)
+const NoteSummary = {
+    props: {
+        id: { type: [Number, String], required: true },
+        subject: { type: String, required: true },
+        topic: { type: String, required: true },
+        pages: { type: Number, default: null },
+        text: { type: String, default: '' },
+        examSoon: { type: Boolean, default: false },
+        learned: { type: Boolean, default: false }
+    },
+    emits: ['toggle-learned', 'toggle-exam'],
+    template: `
+        <article class="note-card" :class="{ 'exam-soon': examSoon, learned: learned }" :data-subject="subject">
+            <h3>{{ topic }}</h3>
+            <p>{{ subject }}<span v-if="pages"> · {{ pages }} стор.</span></p>
+            <p v-if="text" class="note-text">{{ text }}</p>
+            <label class="exam-toggle">
+                <input type="checkbox" class="exam-checkbox" :checked="examSoon" @change="$emit('toggle-exam', id)">
+                Іспит найближчим часом
+            </label>
+            <button type="button" class="learned-button" @click="$emit('toggle-learned', id)">
+                {{ learned ? '✓ Вивчено' : 'Позначити як вивчене' }}
+            </button>
+        </article>`
+};
+
+// Кореневий застосунок: зберігає реактивний стан і обробляє події від карток
+const app = createApp({
+    components: { NoteSummary },
+
+    // Крок 3. Масив конспектів тепер живе в реактивному стані data(), а не в зовнішній змінній
+    data() {
+        return {
+            notes: [
+                { id: 1, topic: 'Інтеграли', subject: 'Вища математика', pages: 12, examSoon: true, learned: false },
+                { id: 2, topic: 'Похідні', subject: 'Вища математика', pages: 8, examSoon: true, learned: false },
+                { id: 3, topic: 'Основи C#', subject: 'Програмування', pages: 15, examSoon: false, learned: true },
+                { id: 4, topic: 'Масиви та цикли', subject: 'Програмування', pages: 10, examSoon: false, learned: false },
+                { id: 5, topic: 'Класи та об’єкти', subject: 'Програмування', pages: 6, examSoon: false, learned: false },
+                { id: 6, topic: 'Кінематика', subject: 'Фізика', pages: 9, examSoon: true, learned: false },
+                { id: 7, topic: 'Часи групи Perfect', subject: 'Англійська мова', pages: 5, examSoon: false, learned: true },
+                { id: 8, topic: 'Київська Русь', subject: 'Історія України', pages: 11, examSoon: false, learned: false },
+                { id: 9, topic: 'Козацька доба', subject: 'Історія України', pages: 7, examSoon: false, learned: false }
+            ],
+            subjects: [
+                { id: 'math', name: 'Вища математика', color: 'color-math' },
+                { id: 'programming', name: 'Програмування', color: 'color-prog' },
+                { id: 'physics', name: 'Фізика', color: 'color-phys' },
+                { id: 'english', name: 'Англійська мова', color: 'color-eng' },
+                { id: 'history', name: 'Історія України', color: 'color-hist' },
+                { id: 'server-notes', name: SERVER_SUBJECT, color: 'color-server', fromServer: true }
+            ],
+            nextId: 10,          // id для нових конспектів із форми
+            newSubject: '',      // поля форми (v-model)
+            newTopic: '',
+            newPages: '',
+            isLoading: false,    // стан завантаження з API
+            apiError: ''         // повідомлення про помилку API
+        };
+    },
+
+    computed: {
+        // Похідне значення: кількість вивчених конспектів перераховується автоматично
+        learnedCount() {
+            return this.notes.filter(note => note.learned).length;
+        },
+        // Предмети для випадного списку форми (без секції «Конспекти з сервера»)
+        studySubjects() {
+            return this.subjects.filter(subject => !subject.fromServer);
+        }
+    },
+
+    methods: {
+        // Конспекти одного предмета — для v-for у секції цього предмета
+        notesOf(subjectName) {
+            return this.notes.filter(note => note.subject === subjectName);
+        },
+
+        // Крок 6. Подія варіанта 16: картка передає toggleLearned(id),
+        // батьківський компонент перемикає позначку «вивчено» в масиві — Vue сам перемальовує картку
+        toggleLearned(id) {
+            const note = this.notes.find(n => n.id === id);
+            note.learned = !note.learned;
+            console.log(`«${note.topic}»: вивчено — ${note.learned}`);
+        },
+
+        // Позначка «Іспит найближчим часом» (з практикуму 8)
+        toggleExam(id) {
+            const note = this.notes.find(n => n.id === id);
+            note.examSoon = !note.examSoon;
+        },
+
+        // Форма з практикуму 8: @submit.prevent уже скасовує перезавантаження сторінки
+        addNote(event) {
+            this.notes.push({
+                id: this.nextId++,
+                topic: this.newTopic,
+                subject: this.newSubject,
+                pages: this.newPages,
+                examSoon: false,
+                learned: false
+            });
+            console.log(`Додано конспект «${this.newTopic}» (${this.newSubject}), усього: ${this.notes.length}`);
+            this.newSubject = '';
+            this.newTopic = '';
+            this.newPages = '';
+            event.target.reset();
+        },
+
+        // Додаткова валідація теми з практикуму 8 (власне повідомлення)
+        validateTopic(event) {
+            const input = event.target;
+            if (input.value !== '' && input.value.trim().length < 3) {
+                input.setCustomValidity('Тема має містити щонайменше 3 символи');
+            } else {
+                input.setCustomValidity('');
+            }
+        },
+
+        // Завантаження конспектів з JSONPlaceholder API (практикум 9):
+        // https://jsonplaceholder.typicode.com/posts?userId=2
+        async loadData() {
+            this.apiError = '';
+            this.isLoading = true;
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Сервер відповів кодом ${response.status}`);
+                }
+                const data = await response.json();
+                console.log('Відповідь API:', data);
+
+                // Прибираємо раніше завантажені конспекти й додаємо нові
+                const ownNotes = this.notes.filter(note => !note.fromServer);
+                const serverNotes = data.map(post => ({
+                    id: `server-${post.id}`,
+                    topic: post.title,
+                    subject: SERVER_SUBJECT,
+                    pages: null,
+                    text: post.body,
+                    examSoon: false,
+                    learned: false,
+                    fromServer: true
+                }));
+                this.notes = [...ownNotes, ...serverNotes];
+                console.log(`Завантажено з сервера: ${data.length} конспектів`);
+            } catch (error) {
+                this.apiError = 'Конспекти тимчасово недоступні. Перевірте з’єднання та натисніть «Оновити».';
+                console.error('Помилка завантаження конспектів:', error);
+            } finally {
+                this.isLoading = false;
+            }
+        }
+    },
+
+    // Після появи застосунку на сторінці одразу завантажуємо конспекти з сервера
+    mounted() {
+        this.loadData();
+    }
+});
+
+app.mount('#app');
