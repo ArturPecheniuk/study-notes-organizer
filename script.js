@@ -313,12 +313,71 @@ loadData();
 
 
 // ===== Практикум 10. Vue 3: компонентний підхід =====
+// (у практикумі 11 до застосунку додано збереження даних, редагування, видалення і фільтр)
 
 const { createApp } = Vue;
 
-// Кроки 4–6. Компонент NoteSummary — картка одного конспекту.
+
+// ===== Практикум 11. Локальне збереження даних =====
+
+// Крок 1. Модель даних одного конспекту (варіант 16):
+// {
+//     id: 1,                          — унікальний ідентифікатор (число)
+//     subject: 'Вища математика',     — предмет
+//     title: 'Інтеграли',             — тема конспекту
+//     text: 'Конспект лекції ...',    — текст конспекту
+//     date: '2026-10-26',             — дата створення / останньої зміни (РРРР-ММ-ДД)
+//     pages: 12,                      — кількість сторінок (з практикумів 6–10)
+//     examSoon: true,                 — позначка «Іспит найближчим часом» (практикум 8)
+//     learned: false                  — позначка «вивчено» (практикум 10)
+// }
+
+// Ключ, під яким конспекти зберігаються в localStorage
+const STORAGE_KEY = 'studyNotes';
+
+// Конспекти, з якими застосунок стартує при самому першому запуску (коли збережених даних ще немає)
+const DEFAULT_NOTES = [
+    { id: 1, subject: 'Вища математика', title: 'Інтеграли', text: 'Конспект лекції про визначені інтеграли та їх обчислення.', date: '2026-09-08', pages: 12, examSoon: true, learned: false },
+    { id: 2, subject: 'Вища математика', title: 'Похідні', text: 'Правила диференціювання та похідні складних функцій.', date: '2026-09-15', pages: 8, examSoon: true, learned: false },
+    { id: 3, subject: 'Програмування', title: 'Основи C#', text: 'Базові типи даних, масиви та структури управління.', date: '2026-09-09', pages: 15, examSoon: false, learned: true },
+    { id: 4, subject: 'Програмування', title: 'Масиви та цикли', text: 'Одновимірні й двовимірні масиви, цикли for і foreach.', date: '2026-09-16', pages: 10, examSoon: false, learned: false },
+    { id: 5, subject: 'Програмування', title: 'Класи та об’єкти', text: 'Поля, методи, конструктори та модифікатори доступу.', date: '2026-09-23', pages: 6, examSoon: false, learned: false },
+    { id: 6, subject: 'Фізика', title: 'Кінематика', text: 'Рівномірний та рівноприскорений рух матеріальної точки.', date: '2026-09-10', pages: 9, examSoon: true, learned: false },
+    { id: 7, subject: 'Англійська мова', title: 'Часи групи Perfect', text: 'Правила використання Present, Past та Future Perfect.', date: '2026-09-11', pages: 5, examSoon: false, learned: true },
+    { id: 8, subject: 'Історія України', title: 'Київська Русь', text: 'Утворення держави, перші князі та їхня внутрішня політика.', date: '2026-09-12', pages: 11, examSoon: false, learned: false },
+    { id: 9, subject: 'Історія України', title: 'Козацька доба', text: 'Запорозька Січ, гетьманство та Національно-визвольна війна.', date: '2026-09-19', pages: 7, examSoon: false, learned: false }
+];
+
+// Крок 2. Зберігає масив конспектів у localStorage.
+// localStorage вміє зберігати лише рядки, тому масив перетворюємо на JSON-рядок
+function saveToLocalStorage(items) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+// Крок 2. Читає масив конспектів з localStorage.
+// Повертає null, якщо даних ще немає (перший запуск), і порожній масив, якщо дані пошкоджені.
+// JSON.parse кидає помилку на зіпсованому рядку, тому виклик загорнуто в try/catch
+function loadFromLocalStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        console.error('Пошкоджені дані в localStorage:', error);
+        return [];
+    }
+}
+
+// Сьогоднішня дата у форматі РРРР-ММ-ДД
+function today() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+
+// ===== Компонент картки конспекту =====
+
+// Компонент NoteSummary (практикум 10) — картка одного конспекту.
 // Отримує всі дані через props і не звертається до глобальних змінних;
-// про клік повідомляє батьківський компонент подіями toggle-learned та toggle-exam
+// про дії користувача повідомляє батьківський компонент подіями
 // (назви подій у kebab-case, бо шаблон записано прямо в HTML, а HTML не розрізняє великі й малі літери)
 const NoteSummary = {
     props: {
@@ -327,14 +386,25 @@ const NoteSummary = {
         topic: { type: String, required: true },
         pages: { type: Number, default: null },
         text: { type: String, default: '' },
+        date: { type: String, default: '' },
         examSoon: { type: Boolean, default: false },
-        learned: { type: Boolean, default: false }
+        learned: { type: Boolean, default: false },
+        editable: { type: Boolean, default: true }
     },
-    emits: ['toggle-learned', 'toggle-exam'],
+    emits: ['toggle-learned', 'toggle-exam', 'edit-note', 'delete-note'],
+    computed: {
+        // Дата у звичному форматі ДД.ММ.РРРР
+        formattedDate() {
+            if (!this.date) return '';
+            const [year, month, day] = this.date.split('-');
+            return `${day}.${month}.${year}`;
+        }
+    },
     template: `
         <article class="note-card" :class="{ 'exam-soon': examSoon, learned: learned }" :data-subject="subject">
             <h3>{{ topic }}</h3>
             <p>{{ subject }}<span v-if="pages"> · {{ pages }} стор.</span></p>
+            <p v-if="formattedDate" class="note-date">{{ formattedDate }}</p>
             <p v-if="text" class="note-text">{{ text }}</p>
             <label class="exam-toggle">
                 <input type="checkbox" class="exam-checkbox" :checked="examSoon" @change="$emit('toggle-exam', id)">
@@ -343,27 +413,23 @@ const NoteSummary = {
             <button type="button" class="learned-button" @click="$emit('toggle-learned', id)">
                 {{ learned ? '✓ Вивчено' : 'Позначити як вивчене' }}
             </button>
+            <div v-if="editable" class="card-actions">
+                <button type="button" class="edit-button" @click="$emit('edit-note', id)">Редагувати</button>
+                <button type="button" class="delete-button" @click="$emit('delete-note', id)">Видалити</button>
+            </div>
         </article>`
 };
 
-// Кореневий застосунок: зберігає реактивний стан і обробляє події від карток
+
+// ===== Кореневий застосунок =====
+
 const app = createApp({
     components: { NoteSummary },
 
-    // Крок 3. Масив конспектів тепер живе в реактивному стані data(), а не в зовнішній змінній
     data() {
         return {
-            notes: [
-                { id: 1, topic: 'Інтеграли', subject: 'Вища математика', pages: 12, examSoon: true, learned: false },
-                { id: 2, topic: 'Похідні', subject: 'Вища математика', pages: 8, examSoon: true, learned: false },
-                { id: 3, topic: 'Основи C#', subject: 'Програмування', pages: 15, examSoon: false, learned: true },
-                { id: 4, topic: 'Масиви та цикли', subject: 'Програмування', pages: 10, examSoon: false, learned: false },
-                { id: 5, topic: 'Класи та об’єкти', subject: 'Програмування', pages: 6, examSoon: false, learned: false },
-                { id: 6, topic: 'Кінематика', subject: 'Фізика', pages: 9, examSoon: true, learned: false },
-                { id: 7, topic: 'Часи групи Perfect', subject: 'Англійська мова', pages: 5, examSoon: false, learned: true },
-                { id: 8, topic: 'Київська Русь', subject: 'Історія України', pages: 11, examSoon: false, learned: false },
-                { id: 9, topic: 'Козацька доба', subject: 'Історія України', pages: 7, examSoon: false, learned: false }
-            ],
+            notes: [],           // власні конспекти (зберігаються локально)
+            serverNotes: [],     // конспекти з API (практикум 9, не зберігаються)
             subjects: [
                 { id: 'math', name: 'Вища математика', color: 'color-math' },
                 { id: 'programming', name: 'Програмування', color: 'color-prog' },
@@ -372,21 +438,41 @@ const app = createApp({
                 { id: 'history', name: 'Історія України', color: 'color-hist' },
                 { id: 'server-notes', name: SERVER_SUBJECT, color: 'color-server', fromServer: true }
             ],
-            nextId: 10,          // id для нових конспектів із форми
+            subjectFilter: '',   // фільтр за предметом ('' — усі предмети)
+            editingId: null,     // id конспекту, який зараз редагується (null — режим додавання)
             newSubject: '',      // поля форми (v-model)
-            newTopic: '',
+            newTitle: '',
             newPages: '',
+            newText: '',
             isLoading: false,    // стан завантаження з API
             apiError: ''         // повідомлення про помилку API
         };
     },
 
     computed: {
-        // Похідне значення: кількість вивчених конспектів перераховується автоматично
-        learnedCount() {
-            return this.notes.filter(note => note.learned).length;
+        // Усі конспекти на сторінці: власні + завантажені з сервера
+        allNotes() {
+            return [...this.notes, ...this.serverNotes];
         },
-        // Предмети для випадного списку форми (без секції «Конспекти з сервера»)
+        // Фільтр за предметом застосовується до масиву збережених конспектів на клієнті
+        filteredNotes() {
+            if (this.subjectFilter === '') {
+                return this.allNotes;
+            }
+            return this.notes.filter(note => note.subject === this.subjectFilter);
+        },
+        // Секції, які показуються з урахуванням фільтра
+        visibleSubjects() {
+            if (this.subjectFilter === '') {
+                return this.subjects;
+            }
+            return this.subjects.filter(subject => subject.name === this.subjectFilter);
+        },
+        // Похідне значення (практикум 10): кількість вивчених конспектів
+        learnedCount() {
+            return this.allNotes.filter(note => note.learned).length;
+        },
+        // Предмети для випадних списків (без секції «Конспекти з сервера»)
         studySubjects() {
             return this.subjects.filter(subject => !subject.fromServer);
         }
@@ -395,38 +481,92 @@ const app = createApp({
     methods: {
         // Конспекти одного предмета — для v-for у секції цього предмета
         notesOf(subjectName) {
-            return this.notes.filter(note => note.subject === subjectName);
+            return this.filteredNotes.filter(note => note.subject === subjectName);
         },
 
-        // Крок 6. Подія варіанта 16: картка передає toggleLearned(id),
-        // батьківський компонент перемикає позначку «вивчено» в масиві — Vue сам перемальовує картку
+        // Шукає конспект за id серед власних і серверних
+        findNote(id) {
+            return this.allNotes.find(note => note.id === id);
+        },
+
+        // Крок 3. Зберігає поточний стан після кожної зміни (додавання, редагування, видалення)
+        persist() {
+            saveToLocalStorage(this.notes);
+            console.log(`Збережено в localStorage: ${this.notes.length} конспектів`);
+        },
+
+        // Подія варіанта 16 з практикуму 10: перемикає позначку «вивчено»
         toggleLearned(id) {
-            const note = this.notes.find(n => n.id === id);
+            const note = this.findNote(id);
             note.learned = !note.learned;
-            console.log(`«${note.topic}»: вивчено — ${note.learned}`);
+            console.log(`«${note.title}»: вивчено — ${note.learned}`);
+            if (!note.fromServer) this.persist();
         },
 
         // Позначка «Іспит найближчим часом» (з практикуму 8)
         toggleExam(id) {
-            const note = this.notes.find(n => n.id === id);
+            const note = this.findNote(id);
             note.examSoon = !note.examSoon;
+            if (!note.fromServer) this.persist();
         },
 
-        // Форма з практикуму 8: @submit.prevent уже скасовує перезавантаження сторінки
-        addNote(event) {
-            this.notes.push({
-                id: this.nextId++,
-                topic: this.newTopic,
-                subject: this.newSubject,
-                pages: this.newPages,
-                examSoon: false,
-                learned: false
-            });
-            console.log(`Додано конспект «${this.newTopic}» (${this.newSubject}), усього: ${this.notes.length}`);
+        // Форма: додавання нового конспекту або збереження змін у наявному
+        saveNote() {
+            if (this.editingId === null) {
+                // Створення (Create)
+                const note = {
+                    id: Date.now(),
+                    subject: this.newSubject,
+                    title: this.newTitle,
+                    text: this.newText,
+                    date: today(),
+                    pages: this.newPages,
+                    examSoon: false,
+                    learned: false
+                };
+                this.notes.push(note);
+                console.log(`Додано конспект «${note.title}» (${note.subject})`);
+            } else {
+                // Редагування (Update) — змінюємо наявний запис з тим самим id
+                const note = this.notes.find(n => n.id === this.editingId);
+                note.subject = this.newSubject;
+                note.title = this.newTitle;
+                note.text = this.newText;
+                note.pages = this.newPages;
+                note.date = today();
+                console.log(`Змінено конспект «${note.title}» (id ${note.id})`);
+            }
+            this.persist();
+            this.resetForm();
+        },
+
+        // Кнопка «Редагувати» на картці: заповнює форму даними конспекту
+        startEdit(id) {
+            const note = this.notes.find(n => n.id === id);
+            this.editingId = id;
+            this.newSubject = note.subject;
+            this.newTitle = note.title;
+            this.newPages = note.pages;
+            this.newText = note.text;
+            document.querySelector('#add-note').scrollIntoView({ behavior: 'smooth' });
+        },
+
+        // Кнопка «Видалити» на картці (Delete)
+        deleteNote(id) {
+            const note = this.notes.find(n => n.id === id);
+            this.notes = this.notes.filter(n => n.id !== id);
+            console.log(`Видалено конспект «${note.title}» (id ${id})`);
+            if (this.editingId === id) this.resetForm();
+            this.persist();
+        },
+
+        // Очищає форму і повертає її в режим додавання
+        resetForm() {
+            this.editingId = null;
             this.newSubject = '';
-            this.newTopic = '';
+            this.newTitle = '';
             this.newPages = '';
-            event.target.reset();
+            this.newText = '';
         },
 
         // Додаткова валідація теми з практикуму 8 (власне повідомлення)
@@ -451,20 +591,17 @@ const app = createApp({
                 }
                 const data = await response.json();
                 console.log('Відповідь API:', data);
-
-                // Прибираємо раніше завантажені конспекти й додаємо нові
-                const ownNotes = this.notes.filter(note => !note.fromServer);
-                const serverNotes = data.map(post => ({
+                this.serverNotes = data.map(post => ({
                     id: `server-${post.id}`,
-                    topic: post.title,
                     subject: SERVER_SUBJECT,
-                    pages: null,
+                    title: post.title,
                     text: post.body,
+                    date: '',
+                    pages: null,
                     examSoon: false,
                     learned: false,
                     fromServer: true
                 }));
-                this.notes = [...ownNotes, ...serverNotes];
                 console.log(`Завантажено з сервера: ${data.length} конспектів`);
             } catch (error) {
                 this.apiError = 'Конспекти тимчасово недоступні. Перевірте з’єднання та натисніть «Оновити».';
@@ -475,8 +612,17 @@ const app = createApp({
         }
     },
 
-    // Після появи застосунку на сторінці одразу завантажуємо конспекти з сервера
+    // Під час запуску: читаємо збережені конспекти, а потім завантажуємо конспекти з сервера
     mounted() {
+        const saved = loadFromLocalStorage();
+        if (saved === null) {
+            // Перший запуск: даних ще немає — беремо стартові конспекти і одразу зберігаємо
+            this.notes = DEFAULT_NOTES.map(note => ({ ...note }));
+            this.persist();
+        } else {
+            this.notes = saved;
+            console.log(`Відновлено з localStorage: ${saved.length} конспектів`);
+        }
         this.loadData();
     }
 });

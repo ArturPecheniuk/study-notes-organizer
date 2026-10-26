@@ -295,6 +295,107 @@ img {
   color: #2e7d32;
 }
 
+/* Практикум 11: текстове поле, кнопки форми, фільтр, дата, кнопки картки */
+.form-field textarea {
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.form-field textarea:focus {
+  outline: 2px solid #0d47a1;
+  outline-offset: 1px;
+}
+
+.form-field-wide {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cancel-button,
+.edit-button,
+.delete-button {
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 4px;
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.cancel-button,
+.edit-button {
+  color: #0d47a1;
+  border: 1px solid #0d47a1;
+}
+
+.delete-button {
+  color: #b71c1c;
+  border: 1px solid #b71c1c;
+}
+
+.cancel-button:hover,
+.edit-button:hover {
+  background-color: #e3f2fd;
+}
+
+.delete-button:hover {
+  background-color: #ffebee;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.note-card .note-date {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.filter-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-section label {
+  font-weight: 700;
+  color: #212529;
+}
+
+.filter-section select {
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.filter-count {
+  color: #495057;
+}
+
+.empty-message {
+  margin: 0;
+  color: #6c757d;
+}
+
+#saved-count {
+  margin-bottom: 0;
+  color: #495057;
+}
+
 /* 5. ASIDE ТА FOOTER */
 .note-viewer {
   background-color: #ffffff;

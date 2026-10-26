@@ -29,10 +29,10 @@
   <main id="app" class="layout-container" v-cloak>
     <div id="notes-list" class="subjects-container">
 
-      <!-- Форма додавання нового конспекту (з практикуму 8, тепер через v-model) -->
+      <!-- Форма додавання та редагування конспекту (практикуми 8, 11) -->
       <section id="add-note" class="subject-section">
-        <h2>Додати конспект</h2>
-        <form id="note-form" class="note-form" @submit.prevent="addNote">
+        <h2>{{ editingId === null ? 'Додати конспект' : 'Редагувати конспект' }}</h2>
+        <form id="note-form" class="note-form" @submit.prevent="saveNote">
           <div class="form-field">
             <label for="note-subject">Предмет</label>
             <select id="note-subject" name="subject" required v-model="newSubject">
@@ -42,18 +42,35 @@
           </div>
           <div class="form-field">
             <label for="note-topic">Тема</label>
-            <input type="text" id="note-topic" name="topic" required pattern=".{3,}" placeholder="Наприклад: Ряди Фур'є" v-model.trim="newTopic" @input="validateTopic">
+            <input type="text" id="note-topic" name="title" required pattern=".{3,}" placeholder="Наприклад: Ряди Фур'є" v-model.trim="newTitle" @input="validateTopic">
           </div>
           <div class="form-field">
             <label for="note-pages">Кількість сторінок</label>
             <input type="number" id="note-pages" name="pages" required min="1" placeholder="Наприклад: 10" v-model.number="newPages">
           </div>
-          <button type="submit" class="form-button">Додати конспект</button>
+          <div class="form-field form-field-wide">
+            <label for="note-text">Текст конспекту</label>
+            <textarea id="note-text" name="text" rows="3" maxlength="300" placeholder="Коротко: про що цей конспект" v-model.trim="newText"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="form-button">{{ editingId === null ? 'Додати конспект' : 'Зберегти зміни' }}</button>
+            <button v-if="editingId !== null" type="button" class="cancel-button" @click="resetForm">Скасувати</button>
+          </div>
         </form>
       </section>
 
-      <!-- Секції предметів: одна секція на кожен предмет масиву subjects (v-for) -->
-      <section v-for="subject in subjects" :key="subject.id" :id="subject.id" class="subject-section" :class="subject.color">
+      <!-- Практикум 11: фільтр за предметом (застосовується до масиву збережених конспектів) -->
+      <section id="filter" class="subject-section filter-section">
+        <label for="subject-filter">Показати предмет:</label>
+        <select id="subject-filter" v-model="subjectFilter">
+          <option value="">Усі предмети</option>
+          <option v-for="subject in studySubjects" :key="subject.id" :value="subject.name">{{ subject.name }}</option>
+        </select>
+        <span class="filter-count">Показано: {{ filteredNotes.length }}</span>
+      </section>
+
+      <!-- Секції предметів: одна секція на кожен предмет (v-for), з урахуванням фільтра -->
+      <section v-for="subject in visibleSubjects" :key="subject.id" :id="subject.id" class="subject-section" :class="subject.color">
         <h2>{{ subject.name }}</h2>
 
         <!-- Панель завантаження з API (з практикуму 9) — лише в секції «Конспекти з сервера» -->
@@ -70,15 +87,20 @@
             :key="note.id"
             :id="note.id"
             :subject="note.subject"
-            :topic="note.topic"
+            :topic="note.title"
             :pages="note.pages"
             :text="note.text"
+            :date="note.date"
             :exam-soon="note.examSoon"
             :learned="note.learned"
+            :editable="!note.fromServer"
             @toggle-learned="toggleLearned"
-            @toggle-exam="toggleExam">
+            @toggle-exam="toggleExam"
+            @edit-note="startEdit"
+            @delete-note="deleteNote">
           </note-summary>
         </div>
+        <p v-if="notesOf(subject.name).length === 0" class="empty-message">Конспектів поки немає.</p>
       </section>
 
     </div>
@@ -86,8 +108,9 @@
     <aside class="note-viewer">
       <h2>Перегляд конспекту</h2>
       <p>Оберіть конспект для детального перегляду – тут з'явиться його текст.</p>
-      <p id="notes-count">Усього конспектів: {{ notes.length }}</p>
-      <p id="learned-count">Вивчено: {{ learnedCount }} з {{ notes.length }}</p>
+      <p id="notes-count">Усього конспектів: {{ allNotes.length }}</p>
+      <p id="saved-count">Збережено локально: {{ notes.length }}</p>
+      <p id="learned-count">Вивчено: {{ learnedCount }} з {{ allNotes.length }}</p>
     </aside>
   </main>
 
