@@ -349,6 +349,7 @@ const DEFAULT_NOTES = [
 ];
 
 // Крок 2. Зберігає масив конспектів у localStorage.
+// (Після переходу на IndexedDB (кроки 5–12) ця пара функцій використовується лише для міграції)
 // localStorage вміє зберігати лише рядки, тому масив перетворюємо на JSON-рядок
 function saveToLocalStorage(items) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -370,6 +371,105 @@ function loadFromLocalStorage() {
 // Сьогоднішня дата у форматі РРРР-ММ-ДД
 function today() {
     return new Date().toISOString().slice(0, 10);
+}
+
+
+// ===== Практикум 11, кроки 5–12. IndexedDB =====
+
+// Крок 5. Схема бази: база StudyNotesDB, версія 1, одне сховище "notes" з ключем id
+const DB_NAME = 'StudyNotesDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'notes';
+
+// Ключ прапорця в localStorage: міграцію (або перше заповнення) вже виконано
+const MIGRATED_KEY = 'migratedToIndexedDB';
+
+// Крок 6. Відкриває базу даних і повертає Promise.
+// onupgradeneeded спрацьовує лише тоді, коли бази ще немає або її версія нижча —
+// тільки тут можна створити object store. Перевірка contains не дає створити його вдруге
+function openDB() {
+    return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+            reject(new Error('Браузер не підтримує IndexedDB'));
+            return;
+        }
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Крок 7. Create: додає конспект у сховище (транзакція readwrite).
+// put() створює новий запис або перезаписує наявний з тим самим id.
+// { ...item } — копія звичайним об'єктом, бо реактивний об'єкт Vue (Proxy) IndexedDB зберегти не може
+async function addItem(item) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).put({ ...item });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// Крок 7. Update: оновлює наявний конспект — той самий put з тим самим id, без дубліката
+async function updateItem(item) {
+    return addItem(item);
+}
+
+// Крок 7. Read: повертає всі конспекти зі сховища (транзакція readonly)
+async function getAllItems() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const request = tx.objectStore(STORE_NAME).getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+// Крок 7. Delete: видаляє конспект за id (транзакція readwrite)
+async function deleteItem(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        tx.objectStore(STORE_NAME).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// Крок 8. Одноразова міграція з localStorage в IndexedDB.
+// Виконується, лише якщо прапорця ще немає і сховище порожнє:
+// переносить конспекти з localStorage (а при самому першому запуску — стартові конспекти)
+// і ставить прапорець migratedToIndexedDB=true, щоб не повторювати перенесення
+async function migrateFromLocalStorage() {
+    if (localStorage.getItem(MIGRATED_KEY) === 'true') {
+        console.log('Міграцію вже виконано раніше — пропускаємо');
+        return;
+    }
+    const existing = await getAllItems();
+    if (existing.length === 0) {
+        const saved = loadFromLocalStorage();
+        if (saved && saved.length > 0) {
+            for (const note of saved) {
+                await addItem(note);
+            }
+            console.log(`Міграція: перенесено ${saved.length} конспектів з localStorage в IndexedDB`);
+        } else {
+            for (const note of DEFAULT_NOTES) {
+                await addItem(note);
+            }
+            console.log(`Перший запуск: у IndexedDB записано ${DEFAULT_NOTES.length} стартових конспектів`);
+        }
+    }
+    localStorage.setItem(MIGRATED_KEY, 'true');
 }
 
 
@@ -428,7 +528,7 @@ const app = createApp({
 
     data() {
         return {
-            notes: [],           // власні конспекти (зберігаються локально)
+            notes: [],           // власні конспекти (крок 9: завжди результат getAllItems з IndexedDB)
             serverNotes: [],     // конспекти з API (практикум 9, не зберігаються)
             subjects: [
                 { id: 'math', name: 'Вища математика', color: 'color-math' },
@@ -445,7 +545,8 @@ const app = createApp({
             newPages: '',
             newText: '',
             isLoading: false,    // стан завантаження з API
-            apiError: ''         // повідомлення про помилку API
+            apiError: '',        // повідомлення про помилку API
+            dbError: ''          // крок 11: повідомлення, якщо IndexedDB недоступна
         };
     },
 
@@ -454,7 +555,7 @@ const app = createApp({
         allNotes() {
             return [...this.notes, ...this.serverNotes];
         },
-        // Фільтр за предметом застосовується до масиву збережених конспектів на клієнті
+        // Фільтр за предметом застосовується на клієнті до масиву, отриманого з getAllItems
         filteredNotes() {
             if (this.subjectFilter === '') {
                 return this.allNotes;
@@ -489,55 +590,79 @@ const app = createApp({
             return this.allNotes.find(note => note.id === id);
         },
 
-        // Крок 3. Зберігає поточний стан після кожної зміни (додавання, редагування, видалення)
-        persist() {
-            saveToLocalStorage(this.notes);
-            console.log(`Збережено в localStorage: ${this.notes.length} конспектів`);
+        // Крок 9. Перечитує конспекти з IndexedDB — викликається після кожної CRUD-операції
+        async reloadNotes() {
+            this.notes = await getAllItems();
+            console.log(`Прочитано з IndexedDB: ${this.notes.length} конспектів`);
         },
 
-        // Подія варіанта 16 з практикуму 10: перемикає позначку «вивчено»
-        toggleLearned(id) {
+        // Крок 11. Повідомлення користувачу, якщо операція з базою не вдалася
+        handleDbError(error) {
+            this.dbError = 'Не вдалося зберегти дані: локальна база IndexedDB недоступна. Можливо, браузер працює в режимі приватного перегляду.';
+            console.error('Помилка IndexedDB:', error);
+        },
+
+        // Подія варіанта 16 з практикуму 10: перемикає позначку «вивчено» (Update)
+        async toggleLearned(id) {
             const note = this.findNote(id);
             note.learned = !note.learned;
             console.log(`«${note.title}»: вивчено — ${note.learned}`);
-            if (!note.fromServer) this.persist();
+            if (note.fromServer) return;
+            try {
+                await updateItem(note);
+                await this.reloadNotes();
+            } catch (error) {
+                this.handleDbError(error);
+            }
         },
 
-        // Позначка «Іспит найближчим часом» (з практикуму 8)
-        toggleExam(id) {
+        // Позначка «Іспит найближчим часом» з практикуму 8 (Update)
+        async toggleExam(id) {
             const note = this.findNote(id);
             note.examSoon = !note.examSoon;
-            if (!note.fromServer) this.persist();
+            if (note.fromServer) return;
+            try {
+                await updateItem(note);
+                await this.reloadNotes();
+            } catch (error) {
+                this.handleDbError(error);
+            }
         },
 
-        // Форма: додавання нового конспекту або збереження змін у наявному
-        saveNote() {
-            if (this.editingId === null) {
-                // Створення (Create)
-                const note = {
-                    id: Date.now(),
-                    subject: this.newSubject,
-                    title: this.newTitle,
-                    text: this.newText,
-                    date: today(),
-                    pages: this.newPages,
-                    examSoon: false,
-                    learned: false
-                };
-                this.notes.push(note);
-                console.log(`Додано конспект «${note.title}» (${note.subject})`);
-            } else {
-                // Редагування (Update) — змінюємо наявний запис з тим самим id
-                const note = this.notes.find(n => n.id === this.editingId);
-                note.subject = this.newSubject;
-                note.title = this.newTitle;
-                note.text = this.newText;
-                note.pages = this.newPages;
-                note.date = today();
-                console.log(`Змінено конспект «${note.title}» (id ${note.id})`);
+        // Форма: додавання нового конспекту (Create) або збереження змін у наявному (Update)
+        async saveNote() {
+            try {
+                if (this.editingId === null) {
+                    const note = {
+                        id: Date.now(),
+                        subject: this.newSubject,
+                        title: this.newTitle,
+                        text: this.newText,
+                        date: today(),
+                        pages: this.newPages,
+                        examSoon: false,
+                        learned: false
+                    };
+                    await addItem(note);
+                    console.log(`Додано в IndexedDB: «${note.title}» (${note.subject})`);
+                } else {
+                    // Той самий id — put перезаписує наявний запис, дубліката не буде
+                    const note = this.notes.find(n => n.id === this.editingId);
+                    await updateItem({
+                        ...note,
+                        subject: this.newSubject,
+                        title: this.newTitle,
+                        text: this.newText,
+                        pages: this.newPages,
+                        date: today()
+                    });
+                    console.log(`Оновлено в IndexedDB: «${this.newTitle}» (id ${note.id})`);
+                }
+                await this.reloadNotes();
+                this.resetForm();
+            } catch (error) {
+                this.handleDbError(error);
             }
-            this.persist();
-            this.resetForm();
         },
 
         // Кнопка «Редагувати» на картці: заповнює форму даними конспекту
@@ -552,12 +677,16 @@ const app = createApp({
         },
 
         // Кнопка «Видалити» на картці (Delete)
-        deleteNote(id) {
+        async deleteNote(id) {
             const note = this.notes.find(n => n.id === id);
-            this.notes = this.notes.filter(n => n.id !== id);
-            console.log(`Видалено конспект «${note.title}» (id ${id})`);
-            if (this.editingId === id) this.resetForm();
-            this.persist();
+            try {
+                await deleteItem(id);
+                console.log(`Видалено з IndexedDB: «${note.title}» (id ${id})`);
+                if (this.editingId === id) this.resetForm();
+                await this.reloadNotes();
+            } catch (error) {
+                this.handleDbError(error);
+            }
         },
 
         // Очищає форму і повертає її в режим додавання
@@ -612,16 +741,16 @@ const app = createApp({
         }
     },
 
-    // Під час запуску: читаємо збережені конспекти, а потім завантажуємо конспекти з сервера
-    mounted() {
-        const saved = loadFromLocalStorage();
-        if (saved === null) {
-            // Перший запуск: даних ще немає — беремо стартові конспекти і одразу зберігаємо
-            this.notes = DEFAULT_NOTES.map(note => ({ ...note }));
-            this.persist();
-        } else {
-            this.notes = saved;
-            console.log(`Відновлено з localStorage: ${saved.length} конспектів`);
+    // Під час запуску: відкриваємо IndexedDB, за потреби переносимо дані з localStorage,
+    // читаємо конспекти з бази (крок 9), а потім завантажуємо конспекти з сервера
+    async mounted() {
+        try {
+            await migrateFromLocalStorage();
+            await this.reloadNotes();
+        } catch (error) {
+            // Крок 11. IndexedDB недоступна — показуємо зрозуміле повідомлення, сторінка працює далі
+            this.dbError = 'Не вдалося відкрити локальну базу даних. Можливо, браузер працює в режимі приватного перегляду — збережені конспекти недоступні.';
+            console.error('Помилка відкриття IndexedDB:', error);
         }
         this.loadData();
     }

@@ -29,6 +29,9 @@
   <main id="app" class="layout-container" v-cloak>
     <div id="notes-list" class="subjects-container">
 
+      <!-- Практикум 11, крок 11: повідомлення, якщо локальна база IndexedDB недоступна -->
+      <p v-if="dbError" class="api-error db-error">{{ dbError }}</p>
+
       <!-- Форма додавання та редагування конспекту (практикуми 8, 11) -->
       <section id="add-note" class="subject-section">
         <h2>{{ editingId === null ? 'Додати конспект' : 'Редагувати конспект' }}</h2>
@@ -109,7 +112,7 @@
       <h2>Перегляд конспекту</h2>
       <p>Оберіть конспект для детального перегляду – тут з'явиться його текст.</p>
       <p id="notes-count">Усього конспектів: {{ allNotes.length }}</p>
-      <p id="saved-count">Збережено локально: {{ notes.length }}</p>
+      <p id="saved-count">Збережено в IndexedDB: {{ notes.length }}</p>
       <p id="learned-count">Вивчено: {{ learnedCount }} з {{ allNotes.length }}</p>
     </aside>
   </main>
