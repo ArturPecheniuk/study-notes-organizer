@@ -580,6 +580,17 @@ const app = createApp({
     },
 
     methods: {
+        // Практикум 12, крок 4. Прогрес предмета: скільки конспектів позначено «вивчено».
+        // Рахує за реальним масивом notes (дані з IndexedDB, практикум 11), а не за захардкодженими числами.
+        // Фільтр за предметом на прогрес не впливає — рахуються всі конспекти предмета
+        progressOf(subjectName) {
+            const subjectNotes = this.allNotes.filter(note => note.subject === subjectName);
+            const learned = subjectNotes.filter(note => note.learned).length;
+            const total = subjectNotes.length;
+            const percent = total === 0 ? 0 : Math.round(learned / total * 100);
+            return { learned, total, percent };
+        },
+
         // Конспекти одного предмета — для v-for у секції цього предмета
         notesOf(subjectName) {
             return this.filteredNotes.filter(note => note.subject === subjectName);

@@ -76,6 +76,24 @@
       <section v-for="subject in visibleSubjects" :key="subject.id" :id="subject.id" class="subject-section" :class="subject.color">
         <h2>{{ subject.name }}</h2>
 
+        <!-- Практикум 12: прогрес-бар «вивчено тем із предмета» (CSS transition).
+             Ширина смуги = відсоток конспектів предмета з позначкою «вивчено» -->
+        <div v-if="!subject.fromServer" class="subject-progress">
+          <div class="progress-label">
+            <span>{{ progressOf(subject.name).percent === 100 ? 'Предмет повністю вивчено ✓' : 'Вивчено тем' }}</span>
+            <span>{{ progressOf(subject.name).learned }} з {{ progressOf(subject.name).total }} ({{ progressOf(subject.name).percent }}%)</span>
+          </div>
+          <div class="progress-bar"
+               :class="{ 'progress-bar--complete': progressOf(subject.name).percent === 100 }"
+               role="progressbar"
+               aria-valuemin="0"
+               aria-valuemax="100"
+               :aria-valuenow="progressOf(subject.name).percent"
+               :aria-label="'Вивчено тем із предмета ' + subject.name">
+            <div class="progress-bar__fill" :style="{ width: progressOf(subject.name).percent + '%' }"></div>
+          </div>
+        </div>
+
         <!-- Панель завантаження з API (з практикуму 9) — лише в секції «Конспекти з сервера» -->
         <div v-if="subject.fromServer" class="api-toolbar">
           <button type="button" class="form-button" :disabled="isLoading" @click="loadData">Оновити</button>
