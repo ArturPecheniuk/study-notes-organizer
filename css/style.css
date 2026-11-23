@@ -257,6 +257,8 @@ img {
 /* Текст конспекту з сервера всередині картки */
 .note-card .note-text {
   margin-top: 8px;
+  /* Практикум 15: переноси рядків у тексті конспекту зберігає CSS, тому v-html/innerHTML не потрібен */
+  white-space: pre-line;
   font-size: 0.9rem;
   color: #495057;
 }

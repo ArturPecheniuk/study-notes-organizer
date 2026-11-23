@@ -454,6 +454,8 @@ async function deleteItem(id) {
 // і ставить прапорець migratedToIndexedDB=true, щоб не повторювати перенесення
 async function migrateFromLocalStorage() {
     if (localStorage.getItem(MIGRATED_KEY) === 'true') {
+        // Практикум 15: прибираємо стару копію конспектів, якщо вона ще лишилась з практикумів 8–10
+        removeLegacyLocalStorage();
         console.log('Міграцію вже виконано раніше — пропускаємо');
         return;
     }
@@ -473,6 +475,19 @@ async function migrateFromLocalStorage() {
         }
     }
     localStorage.setItem(MIGRATED_KEY, 'true');
+    // Практикум 15: після успішного перенесення копія в localStorage більше не потрібна
+    removeLegacyLocalStorage();
+}
+
+// Практикум 15, крок 6. Конспекти можуть містити персональні навчальні дані.
+// localStorage зберігає їх відкритим текстом і без обмеження за часом, доступ до них має
+// будь-який скрипт на сторінці (зокрема шкідливий при XSS). Тому після міграції в IndexedDB
+// стару копію studyNotes видаляємо; у localStorage лишається тільки прапорець migratedToIndexedDB
+function removeLegacyLocalStorage() {
+    if (localStorage.getItem(STORAGE_KEY) !== null) {
+        localStorage.removeItem(STORAGE_KEY);
+        console.log('Практикум 15: стару копію конспектів (studyNotes) видалено з localStorage');
+    }
 }
 
 
@@ -512,6 +527,10 @@ const NoteSummary = {
             </h3>
             <p>{{ subject }}<span v-if="pages"> · {{ pages }} стор.</span></p>
             <p v-if="formattedDate" class="note-date">{{ formattedDate }}</p>
+            <!-- Практикум 15, ПІСЛЯ ВИПРАВЛЕННЯ XSS: текст конспекту виводиться через {{ text }}.
+                 Vue вставляє його як textContent і екранує < > " ', тому HTML із поля text
+                 (з форми чи з API) показується як звичайний текст і не виконується.
+                 Переноси рядків зберігає CSS (white-space: pre-line у .note-text), а не <br> через v-html -->
             <p v-if="text" class="note-text">{{ text }}</p>
             <label class="exam-toggle">
                 <input type="checkbox" class="exam-checkbox" :checked="examSoon" @change="$emit('toggle-exam', id)">
