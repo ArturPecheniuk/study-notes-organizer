@@ -73,6 +73,7 @@ img {
 .nav-phys { color: #c62828; background-color: #ffebee; }
 .nav-eng  { color: #6a1b9a; background-color: #f3e5f5; }
 .nav-hist { color: #993300; background-color: #fff3e0; }
+.nav-all  { color: #212529; background-color: #e9ecef; }
 
 /* 3. ОСНОВНИЙ МАКЕТ */
 .layout-container {
@@ -450,6 +451,50 @@ img {
   .progress-bar--complete {
     animation: none;
   }
+}
+
+/* =========================================
+   Практикум 13. SPA: посилання на сторінку конспекту, сторінка деталей і 404
+========================================= */
+.note-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.note-link:hover,
+.note-link:focus-visible {
+  text-decoration: underline;
+}
+
+.back-link,
+.detail-subject-link {
+  display: inline-block;
+  font-weight: 700;
+  color: #0d47a1;
+  text-decoration: none;
+}
+
+.back-link {
+  margin-bottom: 16px;
+}
+
+.detail-subject-link {
+  margin-top: 16px;
+}
+
+.back-link:hover,
+.detail-subject-link:hover {
+  text-decoration: underline;
+}
+
+/* На сторінці деталей картка одна — в одну колонку на всю ширину */
+.note-detail-grid {
+  grid-template-columns: 1fr !important;
+}
+
+.not-found-link {
+  display: inline-block;
+  text-decoration: none;
 }
 
 /* 5. ASIDE ТА FOOTER */

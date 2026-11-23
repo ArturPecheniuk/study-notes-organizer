@@ -14,16 +14,19 @@
 
   <header class="site-header">
     <h1>Органайзер конспектів</h1>
+    <!-- Практикум 13, крок 6: посилання меню — клієнтська навігація (data-link), без перезавантаження сторінки -->
     <nav class="main-nav">
-      <a href="#math" class="nav-math">Математика</a>
-      <a href="#programming" class="nav-prog">Програмування</a>
-      <a href="#physics" class="nav-phys">Фізика</a>
-      <a href="#english" class="nav-eng">Англійська</a>
-      <a href="#history" class="nav-hist">Історія</a>
+      <a href="#/" class="nav-all" data-link>Усі конспекти</a>
+      <a href="#/subject/math" class="nav-math" data-link>Математика</a>
+      <a href="#/subject/programming" class="nav-prog" data-link>Програмування</a>
+      <a href="#/subject/physics" class="nav-phys" data-link>Фізика</a>
+      <a href="#/subject/english" class="nav-eng" data-link>Англійська</a>
+      <a href="#/subject/history" class="nav-hist" data-link>Історія</a>
     </nav>
   </header>
 
-  <!-- Практикум 10: уся основна частина сторінки — це Vue-застосунок #app.
+  <!-- Практикум 13, крок 2: <main id="app"> — єдиний контейнер, у який рендеряться всі «сторінки» SPA.
+       Практикум 10: уся основна частина сторінки — це Vue-застосунок #app.
        Розмітка нижче є шаблоном Vue: {{ }} — виведення даних, v-for — цикл, @ — події.
        Статичні картки-заглушки з практикуму 2 прибрано: картки тепер створює компонент NoteSummary. -->
   <main id="app" class="layout-container" v-cloak>
@@ -31,6 +34,51 @@
 
       <!-- Практикум 11, крок 11: повідомлення, якщо локальна база IndexedDB недоступна -->
       <p v-if="dbError" class="api-error db-error">{{ dbError }}</p>
+
+      <!-- ===== Практикум 13. Сторінка «/notes/:id» — перегляд одного конспекту ===== -->
+      <section v-if="page === 'detail'" class="subject-section note-detail" :class="currentNote ? colorOf(currentNote.subject) : ''">
+        <a href="#/" class="back-link" data-link>← До списку конспектів</a>
+        <template v-if="currentNote">
+          <h2>Перегляд конспекту</h2>
+          <!-- Та сама картка NoteSummary, що й у списку (повторне використання рендеру) -->
+          <div class="notes-grid note-detail-grid">
+            <note-summary
+              :id="currentNote.id"
+              :subject="currentNote.subject"
+              :topic="currentNote.title"
+              :pages="currentNote.pages"
+              :text="currentNote.text"
+              :date="currentNote.date"
+              :exam-soon="currentNote.examSoon"
+              :learned="currentNote.learned"
+              :editable="!currentNote.fromServer"
+              :linkable="false"
+              @toggle-learned="toggleLearned"
+              @toggle-exam="toggleExam"
+              @edit-note="startEdit"
+              @delete-note="deleteNote">
+            </note-summary>
+          </div>
+          <a v-if="!currentNote.fromServer" :href="'#/subject/' + subjectIdOf(currentNote.subject)" class="detail-subject-link" data-link>
+            Усі конспекти з предмета «{{ currentNote.subject }}» →
+          </a>
+        </template>
+        <p v-else-if="!notesLoaded || isLoading" class="empty-message">Завантаження конспекту…</p>
+        <template v-else>
+          <h2>Конспект не знайдено</h2>
+          <p class="empty-message">Конспекту з номером «{{ noteId }}» немає — можливо, його видалено.</p>
+        </template>
+      </section>
+
+      <!-- ===== Практикум 13, крок 9. Сторінка «Не знайдено» для неіснуючого маршруту ===== -->
+      <section v-else-if="page === 'notFound'" class="subject-section not-found">
+        <h2>Сторінку не знайдено (404)</h2>
+        <p>Адреси «{{ missingPath }}» у застосунку немає.</p>
+        <a href="#/" class="form-button not-found-link" data-link>На головну</a>
+      </section>
+
+      <!-- ===== Сторінки «/» (усі конспекти) і «/subject/:subject» (фільтр за предметом) ===== -->
+      <template v-else>
 
       <!-- Форма додавання та редагування конспекту (практикуми 8, 11) -->
       <section id="add-note" class="subject-section">
@@ -62,12 +110,13 @@
         </form>
       </section>
 
-      <!-- Практикум 11: фільтр за предметом (застосовується до масиву збережених конспектів) -->
+      <!-- Практикум 11: фільтр за предметом (застосовується до масиву збережених конспектів).
+           Практикум 13: вибір предмета змінює маршрут на «/subject/:subject» -->
       <section id="filter" class="subject-section filter-section">
         <label for="subject-filter">Показати предмет:</label>
-        <select id="subject-filter" v-model="subjectFilter">
+        <select id="subject-filter" :value="filterSubjectId" @change="onFilterChange">
           <option value="">Усі предмети</option>
-          <option v-for="subject in studySubjects" :key="subject.id" :value="subject.name">{{ subject.name }}</option>
+          <option v-for="subject in studySubjects" :key="subject.id" :value="subject.id">{{ subject.name }}</option>
         </select>
         <span class="filter-count">Показано: {{ filteredNotes.length }}</span>
       </section>
@@ -124,11 +173,13 @@
         <p v-if="notesOf(subject.name).length === 0" class="empty-message">Конспектів поки немає.</p>
       </section>
 
+      </template>
+
     </div>
 
     <aside class="note-viewer">
       <h2>Перегляд конспекту</h2>
-      <p>Оберіть конспект для детального перегляду – тут з'явиться його текст.</p>
+      <p>Натисніть на назву конспекту, щоб відкрити його окрему сторінку.</p>
       <p id="notes-count">Усього конспектів: {{ allNotes.length }}</p>
       <p id="saved-count">Збережено в IndexedDB: {{ notes.length }}</p>
       <p id="learned-count">Вивчено: {{ learnedCount }} з {{ allNotes.length }}</p>

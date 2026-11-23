@@ -489,7 +489,8 @@ const NoteSummary = {
         date: { type: String, default: '' },
         examSoon: { type: Boolean, default: false },
         learned: { type: Boolean, default: false },
-        editable: { type: Boolean, default: true }
+        editable: { type: Boolean, default: true },
+        linkable: { type: Boolean, default: true }   // практикум 13: назва — посилання на сторінку конспекту
     },
     emits: ['toggle-learned', 'toggle-exam', 'edit-note', 'delete-note'],
     computed: {
@@ -502,7 +503,10 @@ const NoteSummary = {
     },
     template: `
         <article class="note-card" :class="{ 'exam-soon': examSoon, learned: learned }" :data-subject="subject">
-            <h3>{{ topic }}</h3>
+            <h3>
+                <a v-if="linkable" :href="'#/notes/' + id" class="note-link" data-link>{{ topic }}</a>
+                <template v-else>{{ topic }}</template>
+            </h3>
             <p>{{ subject }}<span v-if="pages"> · {{ pages }} стор.</span></p>
             <p v-if="formattedDate" class="note-date">{{ formattedDate }}</p>
             <p v-if="text" class="note-text">{{ text }}</p>
@@ -546,7 +550,11 @@ const app = createApp({
             newText: '',
             isLoading: false,    // стан завантаження з API
             apiError: '',        // повідомлення про помилку API
-            dbError: ''          // крок 11: повідомлення, якщо IndexedDB недоступна
+            dbError: '',         // крок 11: повідомлення, якщо IndexedDB недоступна
+            notesLoaded: false,  // практикум 13: конспекти з IndexedDB уже прочитано
+            page: 'home',        // практикум 13: поточна «сторінка» SPA (home / subject / detail / notFound)
+            noteId: null,        // практикум 13: параметр :id маршруту «/notes/:id»
+            missingPath: ''      // практикум 13: шлях, для якого не знайдено маршрут
         };
     },
 
@@ -576,6 +584,15 @@ const app = createApp({
         // Предмети для випадних списків (без секції «Конспекти з сервера»)
         studySubjects() {
             return this.subjects.filter(subject => !subject.fromServer);
+        },
+        // Практикум 13, крок 8. Конспект для сторінки «/notes/:id» — шукаємо саме його за id
+        // серед даних з IndexedDB (і з API). Параметр з адреси — рядок, тому порівнюємо як рядки
+        currentNote() {
+            return this.allNotes.find(note => String(note.id) === String(this.noteId)) || null;
+        },
+        // Значення випадного списку фільтра: id предмета з маршруту або '' («Усі предмети»)
+        filterSubjectId() {
+            return this.subjectFilter === '' ? '' : this.subjectIdOf(this.subjectFilter);
         }
     },
 
@@ -589,6 +606,22 @@ const app = createApp({
             const total = subjectNotes.length;
             const percent = total === 0 ? 0 : Math.round(learned / total * 100);
             return { learned, total, percent };
+        },
+
+        // Практикум 13. id предмета (для адреси «/subject/:subject») і його колір за назвою
+        subjectIdOf(subjectName) {
+            const subject = this.subjects.find(s => s.name === subjectName);
+            return subject ? subject.id : '';
+        },
+        colorOf(subjectName) {
+            const subject = this.subjects.find(s => s.name === subjectName);
+            return subject ? subject.color : '';
+        },
+
+        // Практикум 13. Вибір у фільтрі не фільтрує напряму, а змінює маршрут
+        onFilterChange(event) {
+            const subjectId = event.target.value;
+            navigate(subjectId === '' ? '/' : `/subject/${subjectId}`);
         },
 
         // Конспекти одного предмета — для v-for у секції цього предмета
@@ -684,7 +717,12 @@ const app = createApp({
             this.newTitle = note.title;
             this.newPages = note.pages;
             this.newText = note.text;
-            document.querySelector('#add-note').scrollIntoView({ behavior: 'smooth' });
+            if (this.page === 'detail') {
+                // Практикум 13: форма є лише на головній — переходимо туди (render() прокрутить угору до форми)
+                navigate('/');
+            } else {
+                document.querySelector('#add-note').scrollIntoView({ behavior: 'smooth' });
+            }
         },
 
         // Кнопка «Видалити» на картці (Delete)
@@ -695,6 +733,8 @@ const app = createApp({
                 console.log(`Видалено з IndexedDB: «${note.title}» (id ${id})`);
                 if (this.editingId === id) this.resetForm();
                 await this.reloadNotes();
+                // Практикум 13: після видалення зі сторінки конспекту повертаємось до списку
+                if (this.page === 'detail') navigate('/');
             } catch (error) {
                 this.handleDbError(error);
             }
@@ -763,8 +803,116 @@ const app = createApp({
             this.dbError = 'Не вдалося відкрити локальну базу даних. Можливо, браузер працює в режимі приватного перегляду — збережені конспекти недоступні.';
             console.error('Помилка відкриття IndexedDB:', error);
         }
+        this.notesLoaded = true;
         this.loadData();
     }
 });
 
-app.mount('#app');
+// vm — змонтований застосунок; через нього view-функції роутера змінюють поточну «сторінку»
+const vm = app.mount('#app');
+
+
+// ===== Практикум 13. SPA: клієнтська маршрутизація без фреймворку =====
+
+// Крок 1. Обрано hash-based роутинг: шлях зберігається після # (наприклад, index.html#/notes/5).
+// Частина після # не надсилається на сервер, тому перехід між «сторінками» не породжує нового
+// запиту документа, а пряме відкриття чи F5 на будь-якому маршруті працює і з Live Server, без налаштувань сервера.
+
+// Крок 5. View-функції. Кожна замінює вміст контейнера #app на свою «сторінку»:
+// змінює vm.page, і Vue прибирає з DOM попередню сторінку та малює нову (еквівалент innerHTML = '').
+// Картки рендерить той самий компонент NoteSummary (функція рендеру з практикуму 7, перенесена у Vue
+// в практикумі 10), а дані беруться з IndexedDB (практикум 11) і з API (практикум 9).
+
+// «/» — список усіх конспектів
+function renderHome() {
+    vm.page = 'home';
+    vm.subjectFilter = '';
+}
+
+// «/notes/:id» — перегляд одного конспекту (крок 8)
+function renderNoteDetail(params) {
+    vm.page = 'detail';
+    vm.noteId = params.id;
+}
+
+// «/subject/:subject» — конспекти одного предмета (фільтр за предметом з практикуму 11)
+function renderSubject(params) {
+    const subject = vm.studySubjects.find(s => s.id === params.subject);
+    if (!subject) {
+        renderNotFound(getCurrentPath());   // предмета з таким id немає — це теж 404
+        return;
+    }
+    vm.page = 'subject';
+    vm.subjectFilter = subject.name;
+}
+
+// Крок 9. Сторінка «Не знайдено» з посиланням на головну
+function renderNotFound(path) {
+    vm.page = 'notFound';
+    vm.missingPath = path;
+}
+
+// Крок 3. Таблиця маршрутів варіанта 16: патерн шляху → view-функція.
+// Сегмент, що починається з «:», — параметр (його значення передається у view-функцію)
+const routes = [
+    { path: '/', view: renderHome },                        // список конспектів
+    { path: '/notes/:id', view: renderNoteDetail },         // перегляд конспекту
+    { path: '/subject/:subject', view: renderSubject }      // фільтр за предметом
+];
+
+// Крок 4. Порівнює шлях з патернами маршрутів посегментно (по «/») і витягує параметри.
+// Повертає { view, params } або null, якщо маршрут не знайдено
+function matchRoute(path) {
+    const pathParts = path.split('/').filter(Boolean);
+    for (const route of routes) {
+        const routeParts = route.path.split('/').filter(Boolean);
+        if (routeParts.length !== pathParts.length) continue;
+        const params = {};
+        const isMatch = routeParts.every((part, i) => {
+            if (part.startsWith(':')) {
+                params[part.slice(1)] = decodeURIComponent(pathParts[i]);
+                return true;
+            }
+            return part === pathParts[i];
+        });
+        if (isMatch) return { view: route.view, params };
+    }
+    return null;
+}
+
+// Поточний шлях — частина адреси після «#» (порожня — це головна «/»)
+function getCurrentPath() {
+    return location.hash.slice(1) || '/';
+}
+
+// Роутер: визначає шлях, знаходить маршрут і викликає його view-функцію
+function render() {
+    const path = getCurrentPath();
+    const match = matchRoute(path);
+    if (match) {
+        match.view(match.params);
+    } else {
+        renderNotFound(path);
+    }
+    window.scrollTo(0, 0);
+    console.log(`Маршрут: ${path} → сторінка «${vm.page}»`);
+}
+
+// Крок 6. Перехід без перезавантаження: змінюємо лише хеш — далі спрацює подія hashchange
+function navigate(path) {
+    location.hash = path;
+}
+
+// Крок 6. Перехоплюємо клік по будь-якому посиланню з атрибутом data-link (меню, картки, «назад»)
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('a[data-link]');
+    if (!link) return;
+    event.preventDefault();
+    navigate(link.getAttribute('href').replace(/^#/, ''));
+});
+
+// Крок 7. Кнопки «назад» / «вперед» браузера змінюють хеш — перемальовуємо сторінку
+window.addEventListener('hashchange', render);
+
+// Перший рендер при відкритті сторінки (script.js підключено з defer, тож DOMContentLoaded ще попереду)
+window.addEventListener('DOMContentLoaded', render);
