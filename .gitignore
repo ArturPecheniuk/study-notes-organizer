@@ -1,1 +1,4 @@
 .DS_Store
+
+# Практикум 14: залежності Node.js не зберігаємо в Git
+node_modules/

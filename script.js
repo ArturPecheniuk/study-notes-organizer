@@ -6,8 +6,11 @@
 // Крок 3. Перевірка, що файл підключено до сторінки
 console.log('script.js підключено');
 
-// Практикум 9, крок 3. Адреса API (JSONPlaceholder, мок-дані: title — тема, body — текст конспекту)
-const API_URL = 'https://jsonplaceholder.typicode.com/posts?userId=2';
+// Практикум 9, крок 3. Адреса API.
+// Практикум 14, крок 9: замість зовнішнього JSONPlaceholder
+// ('https://jsonplaceholder.typicode.com/posts?userId=2') — власний ендпоінт локального Node.js-сервера.
+// Відносна адреса працює, бо сайт і API роздає той самий сервер http://localhost:3000
+const API_URL = '/api/notes';
 
 // Назва секції, у яку потрапляють конспекти з сервера
 const SERVER_SUBJECT = 'Конспекти з сервера';
@@ -759,8 +762,9 @@ const app = createApp({
             }
         },
 
-        // Завантаження конспектів з JSONPlaceholder API (практикум 9):
-        // https://jsonplaceholder.typicode.com/posts?userId=2
+        // Завантаження конспектів з API (практикум 9).
+        // Практикум 14: дані віддає власний сервер — GET /api/notes (server/server.js).
+        // Код fetch, перевірки response.ok і try/catch залишився той самий, змінилась лише адреса
         async loadData() {
             this.apiError = '';
             this.isLoading = true;
@@ -771,11 +775,13 @@ const app = createApp({
                 }
                 const data = await response.json();
                 console.log('Відповідь API:', data);
-                this.serverNotes = data.map(post => ({
-                    id: `server-${post.id}`,
+                // Практикум 14: поля локального API — subject, title, text (замість title/body JSONPlaceholder).
+                // Конспекти з сервера показуються в окремій секції, а їхній предмет — на початку тексту
+                this.serverNotes = data.map(note => ({
+                    id: `server-${note.id}`,
                     subject: SERVER_SUBJECT,
-                    title: post.title,
-                    text: post.body,
+                    title: note.title,
+                    text: `${note.subject}. ${note.text}`,
                     date: '',
                     pages: null,
                     examSoon: false,
